@@ -1,78 +1,69 @@
+mod config;
+mod models;
+mod producer;
+mod helper;
+
+use crate::config::AppConfig;
+use crate::models::LogEntry;
+use crate::producer::KafkaProducer;
+use crate::helper::route_topic;
 use hostname::get;
-use rdkafka::config::ClientConfig;
-use rdkafka::producer::{FutureProducer, FutureRecord};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::time::{Duration, sleep};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct LogEntry {
-    level: String,
-    message: String,
-    hostname: String,
-    timestamp: u64,
-}
+use tokio::time::{sleep, Duration};
 
 #[tokio::main]
-async fn main() {
-    let broker = "localhost:9092"; // Your Kafka broker address
-    let topic = "log_topic"; // Your Kafka topic name
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let cfg = AppConfig::from_env_or_default();
 
-    let producer: FutureProducer = ClientConfig::new()
-        .set("bootstrap.servers", broker)
-        .set("message.timeout.ms", "5000")
-        .create()
-        .expect("Producer creation error");
+    let producer = Arc::new(KafkaProducer::new(cfg.clone())?);
 
-    let producer = Arc::new(producer);
-    let hostname = get().unwrap_or_default().into_string().unwrap_or_default();
+    let hostname = get()
+        .unwrap_or_default()
+        .into_string()
+        .unwrap_or_else(|_| "unknown".into());
 
-    println!("Starting Kafka producer to topic: {}", topic);
+    let mut count= 0;
 
-    let mut log_count = 0;
-    loop {
-        let level = match log_count % 3 {
+    for _ in 0..10 {
+        let level = match count % 3 {
             0 => "INFO",
             1 => "WARN",
             _ => "ERROR",
-        };
+        }
+        .to_string();
 
-        let current_timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)?
             .as_secs();
 
-        let log_entry = LogEntry {
-            level: level.to_string(),
-            message: format!("This is log message number {}", log_count),
+        let entry = LogEntry {
+            level: level.clone(),
+            message: format!("This is log message number {}", count),
             hostname: hostname.clone(),
-            timestamp: current_timestamp,
+            timestamp,
         };
-        let log_json =
-            serde_json::to_string(&log_entry).expect("Failed to serialize log entry to JSON");
 
-        println!("Sending log: {}", log_json);
+        // decide topic based on routing
+        let topic = route_topic(count);
+
 
         let producer_clone = Arc::clone(&producer);
-        // Clone log_json and hostname for the async task.
-        // This ensures the async task owns its copy of the data.
-        let log_json_for_task = log_json.clone();
-        let hostname_for_task = hostname.clone();
+        let entry_clone = entry.clone();
+        let topic_clone = topic.clone();
 
         tokio::spawn(async move {
-            let record = FutureRecord::to(topic)
-                .payload(&log_json_for_task) // Now referencing data owned by the task
-                .key(&hostname_for_task); // Now referencing data owned by the task
-
-            match producer_clone.send(record, Duration::from_secs(0)).await {
-                Ok(delivery) => println!("Delivered: {:?}", delivery),
-                Err((e, _)) => eprintln!("Failed to deliver: {}", e),
+            match producer_clone.send(&topic_clone, entry_clone).await {
+                Ok(_) => println!("Delivered to topic {}", topic_clone),
+                Err(e) => eprintln!("Failed to deliver to {}: {}", topic_clone, e),
             }
         });
 
-        log_count += 1;
-        sleep(Duration::from_secs(1)).await; // Send a log every second
+        count += 1;
+        sleep(Duration::from_secs(1)).await;
     }
+
+    sleep(Duration::from_secs(2)).await;
+
+    Ok(())
 }
