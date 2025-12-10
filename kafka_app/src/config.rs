@@ -1,21 +1,29 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
-#[derive(Debug, Clone)]
+use dotenvy::dotenv;
+
+use crate::constant::{BROKER, TIME_OUT};
+
+#[derive(Clone)]
 pub struct AppConfig {
-    pub brokers: String,
-    pub default_topic: String,
+    pub broker: String,
     pub send_timeout: Duration,
 }
 
 impl AppConfig {
     pub fn from_env_or_default() -> Self {
-        let brokers = std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".into());
-        let default_topic = std::env::var("KAFKA_TOPIC").unwrap_or_else(|_| "rust-app-logs".into());
-        let send_timeout = Duration::from_secs(5);
+        dotenv().ok();
+
+        let broker = env::var(BROKER).unwrap_or_else(|_| "localhost:9092".into());
+        let send_timeout = Duration::from_secs(
+            env::var(TIME_OUT)
+                .ok() 
+                .and_then(|s| s.parse::<u64>().ok()) 
+                .unwrap_or(5),
+        );
 
         Self {
-            brokers,
-            default_topic,
+            broker,
             send_timeout,
         }
     }

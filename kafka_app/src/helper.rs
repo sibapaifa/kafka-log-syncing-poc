@@ -1,4 +1,3 @@
-use crate::models::LogEntry;
 
 pub fn route_topic(count:i32) -> String {
     match count % 2 {

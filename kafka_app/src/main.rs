@@ -2,21 +2,25 @@ mod config;
 mod models;
 mod producer;
 mod helper;
-
-use crate::config::AppConfig;
+mod state;
+mod constant;
+use crate::config::{AppConfig};
 use crate::models::LogEntry;
-use crate::producer::KafkaProducer;
+
 use crate::helper::route_topic;
+use crate::state::AppState;
 use hostname::get;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() ->anyhow::Result<()> {
     let cfg = AppConfig::from_env_or_default();
 
-    let producer = Arc::new(KafkaProducer::new(cfg.clone())?);
+    // let producer = Arc::new(KafkaProducer::new(cfg.clone())?);
+
+    let state= AppState::new(cfg.clone())?;
 
     let hostname = get()
         .unwrap_or_default()
@@ -48,12 +52,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let topic = route_topic(count);
 
 
-        let producer_clone = Arc::clone(&producer);
+        let producer_clone = Arc::clone(&state.producer);
         let entry_clone = entry.clone();
         let topic_clone = topic.clone();
 
         tokio::spawn(async move {
-            match producer_clone.send(&topic_clone, entry_clone).await {
+            match producer_clone.send(&topic_clone, entry_clone,&cfg.send_timeout).await {
                 Ok(_) => println!("Delivered to topic {}", topic_clone),
                 Err(e) => eprintln!("Failed to deliver to {}: {}", topic_clone, e),
             }
