@@ -1,0 +1,23 @@
+{
+    "name": "aiven-aws-opensearch-log-sink",
+    "config": {
+        "connector.class": "io.aiven.kafka.connect.opensearch.OpensearchSinkConnector",
+        "tasks.max": "1",
+        "topics": "TOPIC_NAME",
+        "connection.url": "OPEN_SEARCH_URL",
+        "connection.username": "OPEN_SEARCH_USERNAME",
+        "connection.password": "OPEN_SEARCH_PASSWORD",
+        "key.ignore": "true",
+        "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "false",
+        "errors.tolerance": "all",
+        "errors.log.enable": "true",
+        "errors.log.include.messages": "true",
+        "index.name": "rust-app-logs",
+        "index.name.extension": "-daily",
+        "type.name": "_doc",
+        "topic.timestamp.field": "timestamp",
+        "schema.ignore": "true" 
+    }
+}
