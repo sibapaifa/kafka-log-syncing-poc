@@ -5,12 +5,12 @@ use dotenvy::dotenv;
 use crate::constant::{BROKER, TIME_OUT};
 
 #[derive(Clone)]
-pub struct AppConfig {
+pub struct Config {
     pub broker: String,
     pub send_timeout: Duration,
 }
 
-impl AppConfig {
+impl Config {
     pub fn from_env_or_default() -> Self {
         dotenv().ok();
 

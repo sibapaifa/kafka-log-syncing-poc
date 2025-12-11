@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+chrono = "0.4.42"
 dotenvy = "0.15.7"
 hostname = "0.4.2"
 rdkafka = { version = "0.38.0", features = ["ssl", "cmake-build"] }

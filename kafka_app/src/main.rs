@@ -4,29 +4,22 @@ mod producer;
 mod helper;
 mod state;
 mod constant;
-use crate::config::{AppConfig};
+use crate::config::{Config};
 use crate::models::LogEntry;
 
-use crate::helper::route_topic;
+use crate::helper::{formatted_timestamp, get_hostname, route_topic};
 use crate::state::AppState;
-use hostname::get;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() ->anyhow::Result<()> {
-    let cfg = AppConfig::from_env_or_default();
+    let cfg = Config::from_env_or_default();
 
     // let producer = Arc::new(KafkaProducer::new(cfg.clone())?);
 
-    let state= AppState::new(cfg.clone())?;
-
-    let hostname = get()
-        .unwrap_or_default()
-        .into_string()
-        .unwrap_or_else(|_| "unknown".into());
-
+    let state= AppState::new(&cfg)?;
     let mut count= 0;
 
     for _ in 0..10 {
@@ -37,14 +30,12 @@ async fn main() ->anyhow::Result<()> {
         }
         .to_string();
 
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)?
-            .as_secs();
+        let timestamp = formatted_timestamp();
 
         let entry = LogEntry {
             level: level.clone(),
             message: format!("This is log message number {}", count),
-            hostname: hostname.clone(),
+            hostname:get_hostname(),
             timestamp,
         };
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{config::AppConfig, producer::KafkaProducer};
+use crate::{config::Config, producer::KafkaProducer};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -8,8 +8,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(cfg: AppConfig) -> anyhow::Result<Self> {
-        let kafka_producer = KafkaProducer::new(cfg.clone())?;
+    pub fn new(cfg: &Config) -> anyhow::Result<Self> {
+        let kafka_producer = KafkaProducer::new(cfg)?;
 
         Ok(Self {
             producer: Arc::new(kafka_producer)

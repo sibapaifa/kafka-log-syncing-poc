@@ -5,5 +5,5 @@ pub struct LogEntry {
     pub level: String,
     pub message: String,
     pub hostname: String,
-    pub timestamp: u64,
+    pub timestamp: String,
 }
