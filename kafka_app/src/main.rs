@@ -39,7 +39,7 @@ async fn main() ->anyhow::Result<()> {
             timestamp,
         };
 
-        // decide topic based on routing
+        //Choosing topic
         let topic = route_topic(count);
 
 
