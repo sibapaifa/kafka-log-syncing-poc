@@ -1,64 +1,54 @@
 mod config;
+mod constant;
+mod helper;
 mod models;
 mod producer;
-mod helper;
 mod state;
-mod constant;
-use crate::config::{Config};
-use crate::models::LogEntry;
+use crate::config::Config;
+use crate::models::{ErrorLog, InfoLog, WarnLog};
 
-use crate::helper::{formatted_timestamp, get_hostname, route_topic};
+use crate::helper::{formatted_timestamp, get_hostname};
 use crate::state::AppState;
-use std::sync::Arc;
-
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 #[tokio::main]
-async fn main() ->anyhow::Result<()> {
+async fn main() -> anyhow::Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cfg = Config::from_env_or_default();
 
-    // let producer = Arc::new(KafkaProducer::new(cfg.clone())?);
+    let state = AppState::new(&cfg)?;
+    println!("Application started.");
+    for _ in 0..3 {
+        let info_log = InfoLog::new(
+            "INFO".to_string(),
+            "Application initialized.".to_string(),
+            get_hostname(),
+            formatted_timestamp(),
+        );
+        state.producer.send(info_log, &cfg.send_timeout).await?;
 
-    let state= AppState::new(&cfg)?;
-    let mut count= 0;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
-    for _ in 0..10 {
-        let level = match count % 3 {
-            0 => "INFO",
-            1 => "WARN",
-            _ => "ERROR",
-        }
-        .to_string();
+        let error_log = ErrorLog::new(
+            "ERROR".to_string(),
+            "Failed to connect to database.".to_string(),
+            get_hostname(),
+            formatted_timestamp(),
+            1001,
+        );
+        state.producer.send(error_log, &cfg.send_timeout).await?;
 
-        let timestamp = formatted_timestamp();
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-        let entry = LogEntry {
-            level: level.clone(),
-            message: format!("This is log message number {}", count),
-            hostname:get_hostname(),
-            timestamp,
-        };
-
-        //Choosing topic
-        let topic = route_topic(count);
-
-
-        let producer_clone = Arc::clone(&state.producer);
-        let entry_clone = entry.clone();
-        let topic_clone = topic.clone();
-
-        tokio::spawn(async move {
-            match producer_clone.send(&topic_clone, entry_clone,&cfg.send_timeout).await {
-                Ok(_) => println!("Delivered to topic {}", topic_clone),
-                Err(e) => eprintln!("Failed to deliver to {}: {}", topic_clone, e),
-            }
-        });
-
-        count += 1;
-        sleep(Duration::from_secs(1)).await;
+        let warn_log = WarnLog::new(
+            "WARN".to_string(),
+            "Cache not found, using default.".to_string(),
+            get_hostname(),
+            formatted_timestamp(),
+            "System Failure".to_string(),
+        );
+        state.producer.send(warn_log, &cfg.send_timeout).await?;
     }
-
     sleep(Duration::from_secs(2)).await;
-
+    println!("Application finished.");
     Ok(())
 }
