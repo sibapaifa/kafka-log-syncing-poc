@@ -9,7 +9,7 @@ use crate::constant::{
     MAX_PAYLOAD_SIZE_BYTES, OPENSEARCH_PASSWORD, OPENSEARCH_URL, OPENSEARCH_USER,
 };
 use crate::helper::{read_watermark, write_watermark};
-use crate::log::LogEntry;
+use crate::log::{LogEntry, OpenSearchLog};
 mod constant;
 mod helper;
 mod log;
@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while let Some(log) = cursor.next().await? {
             all_new_logs.push(log);
         }
-
+        println!("{:?}", all_new_logs);
         if all_new_logs.is_empty() {
             println!("No new logs to send.");
             continue;
@@ -111,14 +111,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // --- Construct and Send the Request for the current sub-batch ---
                 let mut body_str = String::new();
                 for log in sub_batch {
+                    let opensearch_log = OpenSearchLog::new(&log.timestamp, &log.level, &log.message);
                     let action = serde_json::json!({ "index": {} });
-                    let log_str = serde_json::to_string(log)?;
+                    let log_str = serde_json::to_string(&opensearch_log)?;
                     body_str.push_str(&serde_json::to_string(&action)?);
                     body_str.push('\n');
                     body_str.push_str(&log_str);
                     body_str.push('\n');
                 }
-
+                println!("{}", body_str);
                 let response = http_client
                     .post(opensearch_url)
                     .basic_auth(opensearch_user, Some(opensearch_pass))

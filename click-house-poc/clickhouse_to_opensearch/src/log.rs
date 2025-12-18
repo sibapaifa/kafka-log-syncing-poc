@@ -6,6 +6,22 @@ use serde::{Deserialize, Serialize};
 pub struct LogEntry {
     #[serde(with = "clickhouse::serde::chrono::datetime64::nanos")]
     pub timestamp: DateTime<Utc>,
-    level: String,
+    pub level: String,
     pub message: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct OpenSearchLog<'a> {
+    pub timestamp: &'a DateTime<Utc>,
+    pub level: &'a str,
+    pub message: &'a str,
+}
+impl<'a> OpenSearchLog<'a> {
+    pub fn new(timestamp: &'a DateTime<Utc>, level: &'a str, message:&'a str) -> Self {
+        Self {
+            timestamp,
+            level,
+            message,
+        }
+    }
 }
