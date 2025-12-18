@@ -8,7 +8,7 @@ pub fn get_hostname() -> String {
 }
 
 pub fn formatted_timestamp() -> String {
-    chrono::Utc::now()
+    chrono::Local::now()
         .format("%Y-%m-%dT%H:%M:%S%.3fZ")
         .to_string()
 }

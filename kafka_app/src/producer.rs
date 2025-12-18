@@ -18,6 +18,11 @@ impl KafkaProducer {
                 "message.timeout.ms",
                 cfg.send_timeout.as_millis().to_string(),
             )
+            .set("linger.ms", "100") // Wait up to 100ms to accumulate messages
+            .set("batch.size", "131072") // Max batch size 128KB
+            .set("compression.codec", "snappy") // Use snappy compression
+            // --- END BATCHING CONFIGURATIONS ---
+            .set("acks", "1")
             .create()?;
 
         Ok(Self { inner: producer })
