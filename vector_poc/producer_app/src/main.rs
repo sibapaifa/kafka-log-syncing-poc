@@ -42,39 +42,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Transaction committed.",
     ];
 
-    loop {
-        let mut logs_batch: Vec<LogEntry> = Vec::new();
-        let batch_size = rng.random_range(5..=10); // Send 5 to 20 logs in a batch
+    for i in 1..5 {
+        let service = service_names[rng.random_range(0..service_names.len())].to_string();
+        let level = log_levels[rng.random_range(0..log_levels.len())].to_string();
+        let message = messages[rng.random_range(0..messages.len())].to_string();
 
-        for _ in 0..batch_size {
-            let service = service_names[rng.random_range(0..service_names.len())].to_string();
-            let level = log_levels[rng.random_range(0..log_levels.len())].to_string();
-            let message = messages[rng.random_range(0..messages.len())].to_string();
-
-            let log_entry = LogEntry {
-                timestamp: Utc::now(),
-                level,
-                message,
-                service,
-                request_id: format!("{:x}", random::<u64>()),
-                user_id: rng.random_range(1000..=9999),
-                duration_ms: rng.random_range(10..=2000),
-            };
-            logs_batch.push(log_entry);
-        }
-
-        let ndjson = logs_batch
-            .iter()
-            .map(|e| serde_json::to_string(e).unwrap())
-            .collect::<Vec<_>>()
-            .join("\n");
+        let log_entry = LogEntry {
+            timestamp: Utc::now(),
+            level,
+            message,
+            service,
+            request_id: format!("{:x}", random::<u64>()),
+            user_id: rng.random_range(1000..=9999),
+            duration_ms: rng.random_range(10..=2000),
+        };
+        let json_log = serde_json::to_string(&log_entry)?;
 
         println!(
-            "Sending NDJSON batch of {} logs ({} bytes)...",
-            logs_batch.len(),
-            ndjson.len()
+            "Sending single log record ({} bytes): {}",
+            json_log.len(),
+            json_log
         );
-        socket.send_to(ndjson.as_bytes(), target_addr).await?;
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        socket.send_to(json_log.as_bytes(), target_addr).await?;
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
+    Ok(())
 }
