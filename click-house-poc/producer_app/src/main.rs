@@ -1,11 +1,12 @@
+use crate::constant::BROKER_ADDRESS;
 use crate::log::LogEntry;
 use chrono::Utc;
 use std::io::Write;
 use std::net::TcpStream;
 mod log;
-
+mod constant;
 fn main() {
-    let broker_address = "127.0.0.1:8080";
+    let broker_address = BROKER_ADDRESS;
     println!("Attempting to connect to broker at {}", broker_address);
 
     match TcpStream::connect(broker_address) {
