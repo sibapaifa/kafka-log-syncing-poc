@@ -10,6 +10,22 @@ pub struct LogEntry {
     pub message: String,
 }
 
+#[derive(Row, Debug, Serialize, Deserialize, Clone)]
+pub struct InfoLog {
+    #[serde(with = "clickhouse::serde::chrono::datetime64::nanos")]
+    timestamp: DateTime<Utc>,
+    information: String,
+    action: String,
+}
+
+#[derive(Row, Clone, Debug, Serialize, Deserialize)]
+pub struct WarnLog {
+    #[serde(with = "clickhouse::serde::chrono::datetime64::nanos")]
+    timestamp: DateTime<Utc>,
+    ip: String,
+    path: String,
+    latency_ms: u64,
+}
 #[derive(Serialize, Debug)]
 pub struct OpenSearchLog<'a> {
     pub timestamp: &'a DateTime<Utc>,
@@ -17,11 +33,31 @@ pub struct OpenSearchLog<'a> {
     pub message: &'a str,
 }
 impl<'a> OpenSearchLog<'a> {
-    pub fn new(timestamp: &'a DateTime<Utc>, level: &'a str, message:&'a str) -> Self {
+    pub fn new(timestamp: &'a DateTime<Utc>, level: &'a str, message: &'a str) -> Self {
         Self {
             timestamp,
             level,
             message,
         }
+    }
+}
+
+pub trait GetTimestamp {
+    fn get_timestamp(&self) -> DateTime<Utc>;
+}
+
+impl GetTimestamp for LogEntry {
+    fn get_timestamp(&self) -> DateTime<Utc> {
+        self.timestamp
+    }
+}
+impl GetTimestamp for InfoLog {
+    fn get_timestamp(&self) -> DateTime<Utc> {
+        self.timestamp
+    }
+}
+impl GetTimestamp for WarnLog {
+    fn get_timestamp(&self) -> DateTime<Utc> {
+        self.timestamp
     }
 }
