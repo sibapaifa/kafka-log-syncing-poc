@@ -17,3 +17,45 @@ impl LogEntry {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InfoLog {
+    timestamp: DateTime<Utc>,
+    information: String,
+    action: String,
+}
+
+impl InfoLog {
+    pub fn new(timestamp: DateTime<Utc>, information: String, action: String) -> Self {
+        Self {
+            timestamp,
+            information,
+            action,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WarnLog {
+    timestamp: DateTime<Utc>,
+    ip: String,
+    path: String,
+    latency_ms: u64,
+}
+impl WarnLog {
+    pub fn new(timestamp: DateTime<Utc>, ip: String, path: String, latency_ms: u64) -> Self {
+        Self {
+            timestamp,
+            ip,
+            path,
+            latency_ms,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub enum Log {
+    Info(InfoLog),
+    Warn(WarnLog),
+    Entry(LogEntry),
+}
