@@ -1,8 +1,7 @@
+use crate::log::{Log};
+use clickhouse::Client;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::TcpStream;
-use clickhouse::Client;
-use clickhouse::insert::Insert;
-use crate::log::LogEntry;
 pub async fn process_stream(
     stream: TcpStream,
     client: Client,
@@ -26,18 +25,10 @@ pub async fn process_stream(
                     continue;
                 }
                 println!("trimmedline{}", trimmed_line);
-                match serde_json::from_str::<LogEntry>(trimmed_line) {
-                    Ok(log_entry) => {
-                        // Successfully parsed JSON, now insert into ClickHouse
-                        println!("Received log: {:?}", log_entry);
-                        let mut inserter: Insert<LogEntry> = client.insert("logs").await?;
-                        inserter.write(&log_entry).await?;
-                        inserter.end().await?;
-                        println!("Successfully inserted log into ClickHouse.");
-                    }
-                    Err(e) => {
-                        // The received data was not valid JSON for our struct
-                        eprintln!("Failed to parse JSON: {}. Data: '{}'", e, trimmed_line);
+                if let Ok(log_variant) = serde_json::from_str::<Log>(trimmed_line) {
+                    // 2. DISPATCH CALL (Exactly once!)
+                    if let Err(e) = log_variant.handle(&client).await {
+                        eprintln!("Failed to handle log: {}", e);
                     }
                 }
                 line.clear(); // Important: clear the buffer for the next line
