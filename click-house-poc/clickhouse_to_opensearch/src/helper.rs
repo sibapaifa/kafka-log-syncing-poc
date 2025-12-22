@@ -11,7 +11,7 @@ use crate::{
         MAX_DOCS_PER_BATCH, MAX_PAYLOAD_SIZE_BYTES, OPENSEARCH_PASSWORD, OPENSEARCH_URL,
         OPENSEARCH_USER,
     },
-    log::GetTimestamp,
+    log::{GetTimestamp, ToOpenSearch},
 };
 
 pub fn read_watermark(table_name: &str) -> Watermark {
@@ -110,7 +110,7 @@ pub async fn send_to_opensearch<T: Serialize>(
     Ok(())
 }
 
-pub async fn sync_table_to_opensearch<T>(
+pub async fn sync_table_to_opensearch<T:ToOpenSearch>(
     table_name: &str,
     clickhouse_client: &clickhouse::Client,
     http_client: &reqwest::Client,
@@ -143,13 +143,18 @@ where
     }
 
     if logs.is_empty() {
+        println!("No logs found");
         return Ok(());
     }
     println!("--->{:?}", logs);
+    let os_logs: Vec<serde_json::Value> = logs
+        .iter()
+        .map(|log| log.to_json_value())
+        .collect::<anyhow::Result<Vec<_>>>()?;
     // 2. Send to OpenSearch (using your existing batching logic, made generic)
-    send_to_opensearch(table_name, &logs, http_client).await?;
+    send_to_opensearch(table_name, &os_logs, http_client).await?;
 
-    // 3. Update Watermark
+    // 3. Update Watermark   let os_logs: Vec<T> = logs.iter().map(|log| (&log).into()).collect();
     if let Some(last_log) = logs.last() {
         write_watermark(
             table_name,

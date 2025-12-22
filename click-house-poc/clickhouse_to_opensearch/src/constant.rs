@@ -12,3 +12,6 @@ pub const CLICKHOUSE_PASSWORD: &str = "dev_password";
 pub const OPENSEARCH_URL: &str = "https://search-aops-cerebro-dev-eyip4s2x3jo5yvguwsme7mfc7q.us-east-1.es.amazonaws.com/click-house-logs-3/_bulk";
 pub const OPENSEARCH_USER: &str = "aopsdevadmin";
 pub const OPENSEARCH_PASSWORD: &str = "Cerebro%2589";
+pub const LOG_ENTRY_TABLE:&str="new_logs";
+pub const INFO_LOG_TABLE:&str="new_info_logs";
+pub const WARN_LOG_TABLE:&str="new_warn_logs";

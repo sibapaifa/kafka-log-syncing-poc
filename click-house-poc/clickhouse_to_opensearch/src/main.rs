@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::time;
 
-use crate::constant::{CLICKHOUSE_PASSWORD, CLICKHOUSE_URL, CLICKHOUSE_USER};
+use crate::constant::{CLICKHOUSE_PASSWORD, CLICKHOUSE_URL, CLICKHOUSE_USER, INFO_LOG_TABLE, LOG_ENTRY_TABLE, WARN_LOG_TABLE};
 use crate::helper::sync_table_to_opensearch;
 
 use crate::log::{InfoLog, LogEntry, WarnLog};
@@ -33,11 +33,11 @@ async fn main() -> anyhow::Result<()> {
         println!("Checking for new logs...");
 
         let sync_entries =
-            sync_table_to_opensearch::<LogEntry>("logs", &clickhouse_client, &http_client);
+            sync_table_to_opensearch::<LogEntry>(LOG_ENTRY_TABLE, &clickhouse_client, &http_client);
         let sync_info =
-            sync_table_to_opensearch::<InfoLog>("info_logs", &clickhouse_client, &http_client);
+            sync_table_to_opensearch::<InfoLog>(INFO_LOG_TABLE, &clickhouse_client, &http_client);
         let sync_warn =
-            sync_table_to_opensearch::<WarnLog>("warn_logs", &clickhouse_client, &http_client);
+            sync_table_to_opensearch::<WarnLog>(WARN_LOG_TABLE, &clickhouse_client, &http_client);
 
         let results = tokio::join!(sync_entries, sync_info, sync_warn);
 
