@@ -62,7 +62,7 @@ pub trait LogHandler: Send + Sync {
 #[async_trait::async_trait]
 impl LogHandler for InfoLog {
     async fn handle(&self, client: &Client) -> anyhow::Result<()> {
-        insert_into_clickhouse(client, "info_logs", self).await?;
+        insert_into_clickhouse(client, "new_info_logs", self).await?;
         Ok(())
     }
 }
@@ -70,7 +70,7 @@ impl LogHandler for InfoLog {
 #[async_trait::async_trait]
 impl LogHandler for WarnLog {
     async fn handle(&self, client: &Client) -> anyhow::Result<()> {
-        insert_into_clickhouse(client, "warn_logs", self).await?;
+        insert_into_clickhouse(client, "new_warn_logs", self).await?;
         Ok(())
     }
 }
@@ -78,7 +78,7 @@ impl LogHandler for WarnLog {
 #[async_trait::async_trait]
 impl LogHandler for LogEntry {
     async fn handle(&self, client: &Client) -> anyhow::Result<()> {
-        insert_into_clickhouse(client, "logs", self).await?;
+        insert_into_clickhouse(client, "new_logs", self).await?;
         Ok(())
     }
 }
